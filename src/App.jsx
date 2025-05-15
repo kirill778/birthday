@@ -1,87 +1,160 @@
-import { useEffect } from 'react';
-import { useBirthday } from './context/BirthdayContext';
+import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import BirthdayForm from './components/BirthdayForm';
 import BirthdayList from './components/BirthdayList';
 import UpcomingBirthdays from './components/UpcomingBirthdays';
 import MonthlyHighlight from './components/MonthlyHighlight';
-import { toast } from 'react-toastify';
-import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { BirthdayProvider, useBirthday } from './context/BirthdayContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { COMMON_SYNC_KEY } from './utils/storage';
 
-function App() {
-  const { getTodaysBirthdays, getCurrentMonthBirthdays, getNextMonthBirthdays, people } = useBirthday();
+// Компонент для дополнительной синхронизации должен быть внутри контекста
+const SyncHelper = () => {
+  const { forceSave } = useBirthday();
   
-  
-  // Effect to check for today's birthdays and show notifications
+  // При монтировании и размонтировании компонента принудительно сохраняем данные
   useEffect(() => {
-    // Update date information to ensure correct data display
-    const today = new Date();
-    const currentDate = today.getDate();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    console.log('SyncHelper mounted - forcing initial sync');
+    // Делаем принудительное сохранение данных через короткие промежутки времени
+    const initialSync = setTimeout(() => {
+      forceSave();
+      console.log('Initial sync completed');
+    }, 500);
     
-    console.log(`Current date: ${currentDate}, Current month: ${currentMonth + 1}, Current year: ${currentYear}`);
+    // Регулярная синхронизация
+    const regularSync = setInterval(() => {
+      forceSave();
+      console.log('Regular sync completed');
+    }, 5000);
     
-    // Check for birthdays today and show notifications
-    const todaysBirthdays = getTodaysBirthdays();
-    const currentMonthBdays = getCurrentMonthBirthdays();
-    const nextMonthBdays = getNextMonthBirthdays();
+    // Также сохраняем при изменении видимости вкладки
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        forceSave();
+        console.log('Visibility sync');
+      }
+    };
     
-    console.log(`Today's birthdays: ${todaysBirthdays.length}`);
-    console.log(`Current month birthdays: ${currentMonthBdays.length}`);
-    console.log(`Next month birthdays: ${nextMonthBdays.length}`);
+    document.addEventListener('visibilitychange', handleVisibility);
     
-    // Show toast notifications for today's birthdays
-    todaysBirthdays.forEach(person => {
-      toast.info(`🎂 Сегодня день рождения ${person.name}!`, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true
-      });
-    });
-  }, [getTodaysBirthdays, getCurrentMonthBirthdays, getNextMonthBirthdays]);
+    return () => {
+      clearTimeout(initialSync);
+      clearInterval(regularSync);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      
+      // При размонтировании тоже сохраняем
+      forceSave();
+      console.log('SyncHelper unmounted - final sync');
+    };
+  }, [forceSave]);
+  
+  // Этот компонент не рендерит никакого UI
+  return null;
+};
+
+// Компонент для синхронизации между разными IP адресами
+const CrossIPSync = () => {
+  const { forceSave } = useBirthday();
+  const [lastSyncTime, setLastSyncTime] = useState(0);
+  
+  // Эффект для отслеживания изменений в общем ключе синхронизации
+  useEffect(() => {
+    // Функция проверки изменений в общем ключе синхронизации
+    const checkCommonSync = () => {
+      try {
+        const syncDataStr = localStorage.getItem(COMMON_SYNC_KEY);
+        if (syncDataStr) {
+          const syncData = JSON.parse(syncDataStr);
+          if (syncData.timestamp > lastSyncTime) {
+            console.log('CrossIPSync: Detected changes in common sync key');
+            setLastSyncTime(syncData.timestamp);
+            forceSave();
+          }
+        }
+      } catch (e) {
+        console.error('CrossIPSync: Error checking common sync key', e);
+      }
+    };
+    
+    // Проверяем сразу при монтировании
+    checkCommonSync();
+    
+    // Настраиваем интервал для регулярной проверки
+    const interval = setInterval(checkCommonSync, 2000);
+    
+    // Слушаем изменения в localStorage
+    const handleStorageChange = (e) => {
+      if (e.key === COMMON_SYNC_KEY || e.key === null) {
+        console.log('CrossIPSync: Common sync key changed');
+        checkCommonSync();
+      }
+    };
+    
+    // Дополнительная проверка при фокусе окна
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('CrossIPSync: Visibility changed to visible');
+        setTimeout(checkCommonSync, 500);
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    document.addEventListener('visibilitychange', handleVisibility);
+    
+    // Очистка ресурсов
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [lastSyncTime, forceSave]);
+  
+  // Компонент без UI
+  return null;
+};
+
+// Основной компонент приложения с контекстом и компонентами
+const AppContent = () => {
+  useEffect(() => {
+    document.title = 'Дни рождения сотрудников';
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <Header />
-      
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-        >
-          <div className="space-y-8 order-1 lg:order-2">
-            <UpcomingBirthdays />
-            <MonthlyHighlight />
-          </div>
-          
-          <div className="lg:col-span-2 order-2 lg:order-1">
-            <div className="mb-8">
-              <BirthdayForm />
-            </div>
-            
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4 text-gray-800">
-                {people.length > 0 ? 'Все дни рождения' : 'Дни рождения не добавлены'}
-              </h2>
-              <BirthdayList />
+      <div className="container mx-auto px-4 py-8">
+        <div className="md:flex md:flex-row-reverse md:gap-8">
+          <div className="md:w-1/3 mb-8 md:mb-0">
+            <BirthdayForm />
+            <div className="mt-8">
+              <UpcomingBirthdays />
             </div>
           </div>
-        </motion.div>
-      </main>
-      
-      <footer className="py-6 bg-gray-100 border-t border-gray-200">
-        <div className="container mx-auto px-4 text-center text-gray-600">
-          <p>Приложение для дней рождения &copy; {format(new Date(), 'yyyy')}</p>
+          <div className="md:w-2/3">
+            <div className="flex flex-col md:flex-row md:gap-8">
+              <div className="w-full mb-8 md:mb-0">
+                <MonthlyHighlight />
+                <div className="mt-8">
+                  <BirthdayList />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </footer>
+      </div>
+      <SyncHelper />
+      <CrossIPSync />
+      <ToastContainer position="top-right" autoClose={5000} />
     </div>
+  );
+};
+
+function App() {
+  return (
+    <BirthdayProvider>
+      <AppContent />
+    </BirthdayProvider>
   );
 }
 

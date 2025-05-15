@@ -1,21 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBirthday } from '../context/BirthdayContext';
 import { format } from 'date-fns';
-import { FaUserPlus } from 'react-icons/fa';
+import { FaUserPlus, FaSpinner } from 'react-icons/fa';
 import { motion } from 'framer-motion';
+import { COMMON_SYNC_KEY } from '../utils/storage';
 
 const BirthdayForm = () => {
   const [name, setName] = useState('');
   const [birthdate, setBirthdate] = useState('');
   const [notes, setNotes] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveCount, setSaveCount] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
   
-  const { addPerson } = useBirthday();
+  const { addPerson, forceSave, serverSyncActive } = useBirthday();
+  
+  const clearForm = () => {
+    setName('');
+    setBirthdate('');
+    setNotes('');
+    setErrorMessage('');
+  };
   
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!name.trim() || !birthdate) return;
+    if (!name.trim() || !birthdate || isSubmitting) return;
+    
+    // Очищаем предыдущие ошибки
+    setErrorMessage('');
+    
+    // Устанавливаем флаг отправки формы
+    setIsSubmitting(true);
     
     const today = new Date();
     const selectedDate = new Date(birthdate);
@@ -33,18 +50,100 @@ const BirthdayForm = () => {
       );
     }
     
-    addPerson({
-      name: name.trim(),
-      birthdate: adjustedBirthdate,
-      notes: notes.trim()
-    });
-    
-    // Reset form
-    setName('');
-    setBirthdate('');
-    setNotes('');
-    setShowForm(false);
+    try {
+      // Создаем новый счетчик сохранений
+      const saveId = Date.now();
+      setSaveCount(saveId);
+      
+      // Добавляем человека
+      addPerson({
+        name: name.trim(),
+        birthdate: adjustedBirthdate,
+        notes: notes.trim()
+      });
+      
+      // Многократное сохранение для обеспечения надежной синхронизации
+      const multiSave = () => {
+        // Принудительно сохраняем данные в localStorage несколько раз
+        let saveAttempts = 0;
+        
+        const attemptSave = () => {
+          if (saveAttempts >= 3) {
+            console.log("Все попытки сохранения выполнены");
+            
+            // Чистим форму
+            clearForm();
+            setShowForm(false);
+            
+            // Сбрасываем флаг отправки
+            setIsSubmitting(false);
+            return;
+          }
+          
+          saveAttempts++;
+          console.log(`Попытка сохранения ${saveAttempts}/3`);
+          
+          // Сохраняем данные
+          const success = forceSave();
+          
+          if (!success) {
+            setErrorMessage('Ошибка при сохранении. Попробуем еще раз...');
+          } else if (saveAttempts === 3) {
+            setErrorMessage('');
+          }
+          
+          // Обновляем метку времени в общем ключе синхронизации
+          if (!serverSyncActive) {
+            try {
+              const syncDataStr = localStorage.getItem(COMMON_SYNC_KEY);
+              if (syncDataStr) {
+                const syncData = JSON.parse(syncDataStr);
+                syncData.timestamp = Date.now(); // Обновляем метку
+                localStorage.setItem(COMMON_SYNC_KEY, JSON.stringify(syncData));
+                console.log("Обновлена общая метка синхронизации");
+              }
+            } catch (e) {
+              console.error("Ошибка при обновлении общей метки:", e);
+            }
+          }
+          
+          // Планируем следующую попытку
+          setTimeout(attemptSave, 500);
+        };
+        
+        // Запускаем цепочку попыток сохранения
+        attemptSave();
+      };
+      
+      // Запускаем многократное сохранение с небольшой задержкой
+      setTimeout(multiSave, 100);
+      
+    } catch (error) {
+      console.error("Error adding person:", error);
+      setIsSubmitting(false);
+      setErrorMessage("Возникла ошибка при добавлении. Пожалуйста, попробуйте еще раз.");
+    }
   };
+  
+  // Сбрасываем флаг отправки, если форма закрывается
+  useEffect(() => {
+    if (!showForm) {
+      setIsSubmitting(false);
+      clearForm();
+    }
+  }, [showForm]);
+  
+  // Эффект для отслеживания успешного сохранения
+  useEffect(() => {
+    if (saveCount > 0) {
+      // Установка флага сохранения в localStorage для других вкладок/IP
+      try {
+        localStorage.setItem('birthdayPeople_lastSave', saveCount.toString());
+      } catch (e) {
+        console.error("Ошибка при установке флага сохранения:", e);
+      }
+    }
+  }, [saveCount]);
   
   const formVariants = {
     hidden: { opacity: 0, height: 0 },
@@ -64,6 +163,7 @@ const BirthdayForm = () => {
               : 'bg-primary-500 text-white hover:bg-primary-600'
           }`}
           onClick={() => setShowForm(!showForm)}
+          disabled={isSubmitting}
         >
           <FaUserPlus className="mr-2" />
           {showForm ? 'Отмена' : 'Добавить'}
@@ -94,6 +194,7 @@ const BirthdayForm = () => {
                 className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="Введите полное имя"
                 required
+                disabled={isSubmitting}
               />
             </div>
             
@@ -111,6 +212,7 @@ const BirthdayForm = () => {
                 onChange={(e) => setBirthdate(e.target.value)}
                 className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -129,19 +231,38 @@ const BirthdayForm = () => {
               className="w-full px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Добавьте заметки, идеи подарков и т.д."
               rows="3"
+              disabled={isSubmitting}
             />
           </div>
           
+          {errorMessage && (
+            <div className="text-error-500 text-sm p-2 bg-error-50 rounded-md">
+              {errorMessage}
+            </div>
+          )}
+          
           <div className="text-right">
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+              whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
               type="submit"
-              className="px-6 py-2 bg-primary-500 text-white rounded-md font-medium hover:bg-primary-600 transition-colors"
+              className={`px-6 py-2 ${
+                isSubmitting 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-primary-500 hover:bg-primary-600'
+              } text-white rounded-md font-medium transition-colors flex items-center justify-center`}
+              disabled={isSubmitting}
             >
-              Сохранить
+              {isSubmitting && <FaSpinner className="animate-spin mr-2" />}
+              {isSubmitting ? 'Сохранение...' : 'Сохранить'}
             </motion.button>
           </div>
+          
+          {serverSyncActive && (
+            <div className="text-center text-xs text-gray-500 mt-2">
+              Синхронизация с сервером активна
+            </div>
+          )}
         </form>
       </motion.div>
     </div>
