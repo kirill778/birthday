@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Inter', sans-serif;
+  @apply bg-gray-50 text-gray-900;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold;
+  line-height: 1.2;
+}
+
+p, li, span {
+  line-height: 1.5;
+}
+
+/* Birthday card animations */
+.birthday-card-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+.birthday-card-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+.birthday-card-exit {
+  opacity: 1;
+}
+.birthday-card-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Confetti piece */
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 20px;
+  background: #ffd300;
+  top: 0;
+  opacity: 0;
+}
+.confetti-piece:nth-child(1) {
+  left: 7%;
+  transform: rotate(-24deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 182ms;
+  animation-duration: 2s;
+}
+.confetti-piece:nth-child(2) {
+  left: 14%;
+  transform: rotate(15deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 161ms;
+  animation-duration: 1.5s;
+}
+.confetti-piece:nth-child(3) {
+  left: 21%;
+  transform: rotate(10deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 153ms;
+  animation-duration: 1.75s;
+}
+.confetti-piece:nth-child(4) {
+  left: 28%;
+  transform: rotate(23deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 103ms;
+  animation-duration: 2.5s;
+  background: #ff6217;
+}
+.confetti-piece:nth-child(5) {
+  left: 35%;
+  transform: rotate(-5deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 240ms;
+  animation-duration: 1.25s;
+  background: #6017ff;
+}
+.confetti-piece:nth-child(6) {
+  left: 42%;
+  transform: rotate(17deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 247ms;
+  animation-duration: 2.15s;
+  background: #ff8217;
+}
+.confetti-piece:nth-child(7) {
+  left: 49%;
+  transform: rotate(-15deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 50ms;
+  animation-duration: 1.65s;
+  background: #1766ff;
+}
+.confetti-piece:nth-child(8) {
+  left: 56%;
+  transform: rotate(11deg);
+  animation: makeItRain 1s ease-out infinite;
+  animation-delay: 143ms;
+  animation-duration: 1.9s;
+  background: #17adff;
+}
+
+@keyframes makeItRain {
+  from {
+    opacity: 0;
+    transform: translateY(0%) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(100vh) rotate(25deg);
+  }
+}

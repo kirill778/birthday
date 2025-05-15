@@ -1,0 +1,90 @@
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          100: '#e6f1ff',
+          200: '#b3d1ff',
+          300: '#80b0ff',
+          400: '#4d90ff',
+          500: '#1a70ff',
+          600: '#0052cc',
+          700: '#003d99',
+          800: '#002966',
+          900: '#001433',
+        },
+        secondary: {
+          100: '#ffe6f0',
+          200: '#ffb3d1',
+          300: '#ff80b0',
+          400: '#ff4d90',
+          500: '#ff1a70',
+          600: '#cc0052',
+          700: '#99003d',
+          800: '#660029',
+          900: '#330014',
+        },
+        accent: {
+          100: '#fffbe6',
+          200: '#fff3b3',
+          300: '#ffeb80',
+          400: '#ffe44d',
+          500: '#ffdc1a',
+          600: '#ccaa00',
+          700: '#997f00',
+          800: '#665500',
+          900: '#332a00',
+        },
+        success: {
+          100: '#e6ffee',
+          200: '#b3ffcc',
+          300: '#80ffaa',
+          400: '#4dff88',
+          500: '#1aff66',
+          600: '#00cc44',
+          700: '#009933',
+          800: '#006622',
+          900: '#003311',
+        },
+        warning: {
+          100: '#fff8e6',
+          200: '#ffeab3',
+          300: '#ffdc80',
+          400: '#ffce4d',
+          500: '#ffc01a',
+          600: '#cc9600',
+          700: '#997000',
+          800: '#664b00',
+          900: '#332500',
+        },
+        error: {
+          100: '#ffe6e6',
+          200: '#ffb3b3',
+          300: '#ff8080',
+          400: '#ff4d4d',
+          500: '#ff1a1a',
+          600: '#cc0000',
+          700: '#990000',
+          800: '#660000',
+          900: '#330000',
+        },
+      },
+      animation: {
+        'confetti': 'confetti 5s ease-in-out forwards',
+      },
+      keyframes: {
+        confetti: {
+          '0%': { transform: 'translateY(-1000px)', opacity: '0' },
+          '10%': { transform: 'translateY(0px)', opacity: '1' },
+          '90%': { transform: 'translateY(0px)', opacity: '1' },
+          '100%': { transform: 'translateY(1000px)', opacity: '0' },
+        }
+      }
+    },
+  },
+  plugins: [],
+}
