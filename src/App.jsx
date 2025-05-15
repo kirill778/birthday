@@ -124,21 +124,17 @@ const AppContent = () => {
     <div className="min-h-screen bg-gray-100">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <div className="md:flex md:flex-row-reverse md:gap-8">
-          <div className="md:w-1/3 mb-8 md:mb-0">
+        <div className="md:flex md:gap-8">
+          <div className="md:w-2/3">
             <BirthdayForm />
             <div className="mt-8">
-              <UpcomingBirthdays />
+              <BirthdayList />
             </div>
           </div>
-          <div className="md:w-2/3">
-            <div className="flex flex-col md:flex-row md:gap-8">
-              <div className="w-full mb-8 md:mb-0">
-                <MonthlyHighlight />
-                <div className="mt-8">
-                  <BirthdayList />
-                </div>
-              </div>
+          <div className="md:w-1/3 mb-8 md:mb-0">
+            <MonthlyHighlight />
+            <div className="mt-8">
+              <UpcomingBirthdays />
             </div>
           </div>
         </div>
