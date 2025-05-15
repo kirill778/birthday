@@ -56,7 +56,12 @@ function App() {
           transition={{ duration: 0.5 }}
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          <div className="lg:col-span-2">
+          <div className="space-y-8 order-1 lg:order-2">
+            <UpcomingBirthdays />
+            <MonthlyHighlight />
+          </div>
+          
+          <div className="lg:col-span-2 order-2 lg:order-1">
             <div className="mb-8">
               <BirthdayForm />
             </div>
@@ -67,11 +72,6 @@ function App() {
               </h2>
               <BirthdayList />
             </div>
-          </div>
-          
-          <div className="space-y-8">
-            <UpcomingBirthdays />
-            <MonthlyHighlight />
           </div>
         </motion.div>
       </main>
